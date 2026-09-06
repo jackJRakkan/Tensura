@@ -52,7 +52,7 @@
     #combat-chat-log {
       flex-grow: 1;
       overflow-y: auto;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.65);
       border: 1px solid #475569;
       border-radius: 4px;
       padding: 10px;
@@ -134,7 +134,50 @@
     .btn-reroll-text:hover { border-color: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
     .btn-skip:hover { border-color: #ef4444; color: #f87171; box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
     
-    /* Hộp lệnh ẩn details */
+    /* BẢNG CHỌN CHIÊU THỨC / KỸ NĂNG */
+    #skills-panel {
+      position: absolute;
+      bottom: 105px;
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1.5px solid #ef4444;
+      border-radius: 6px;
+      padding: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    }
+    .skills-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85em;
+      font-weight: bold;
+      color: #fca5a5;
+      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+      padding-bottom: 4px;
+    }
+    .skill-select-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid #475569;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      transition: background 0.2s;
+    }
+    .skill-select-item:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+    }
+    
     details {
       margin-top: 5px;
       background: rgba(0, 0, 0, 0.3);
@@ -161,7 +204,7 @@
   <!-- Thanh máu HP -->
   <div class="combat-hp-container">
     <div class="combat-hp-label">
-      <span>Sinh lực (HP)</span>
+      <span>Sinh lực phu quân (HP)</span>
       <span id="hp-text">--/--</span>
     </div>
     <div class="combat-hp-bar">
@@ -174,9 +217,21 @@
     <div style="text-align: center; color: #fca5a5; font-style: italic;">Hệ thống chiến đấu đã sẵn sàng. Hãy nhập hành động giao tranh!</div>
   </div>
 
+  <!-- BẢNG CHỌN CHIÊU THỨC / KỸ NĂNG (ẨN HIỆN ĐƯỢC) -->
+  <div id="skills-panel">
+    <div class="skills-panel-header">
+      <span>⚔️ CHỌN CHIÊU THỨC TẤN CÔNG</span>
+      <span id="close-skills-panel-btn" style="cursor: pointer; padding: 0 5px;"><i class="fas fa-times"></i></span>
+    </div>
+    <div id="skills-list" style="display: flex; flex-direction: column; gap: 5px;">
+      <!-- Đánh thường và kỹ năng sẽ tự động đổ vào đây -->
+    </div>
+  </div>
+
   <!-- Khung nhập lệnh -->
   <div class="combat-input-area">
-    <textarea id="combat-chat-input" placeholder="Nhập đòn đánh, ma pháp hoặc kỹ năng độc hữu..."></textarea>
+    <button id="toggle-skills-btn" class="combat-btn" style="width: 45px; height: 40px; margin: 0; border-color: #ef4444; color: #ef4444;" title="Chọn Kỹ năng / Đánh thường"><i class="fas fa-fist-raised"></i></button>
+    <textarea id="combat-chat-input" placeholder="Nhập hành động hoặc chọn chiêu thức..."></textarea>
     <button id="combat-send-btn" title="Gửi lệnh"><i class="fas fa-paper-plane"></i></button>
   </div>
 
@@ -191,18 +246,54 @@
     const chatLog = document.getElementById('combat-chat-log');
     const chatInput = document.getElementById('combat-chat-input');
     const sendBtn = document.getElementById('combat-send-btn');
+    const skillsPanel = document.getElementById('skills-panel');
+    const skillsList = document.getElementById('skills-list');
     let isGenerating = false;
 
-    // 1. NHẬN THÔNG TIN TỪ GAME CHÍNH (HP & CẬP NHẬT LOG)
+    // 1. NHẬN THÔNG TIN TỪ GAME CHÍNH (HP, KỸ NĂNG & CẬP NHẬT LOG)
     window.addEventListener('message', (e) => {
       if (!e.data || typeof e.data !== 'object') return;
-      const { type, hp, maxHp, logText } = e.data;
+      const { type, hp, maxHp, logText, skills, techniques } = e.data;
 
       // Cập nhật máu HP
       if (type === 'COMBAT_UPDATE_HP') {
         const percent = Math.min(100, Math.max(0, Math.floor((hp / maxHp) * 100)));
         document.getElementById('hp-text').textContent = `${hp}/${maxHp}`;
         document.getElementById('hp-fill').style.width = `${percent}%`;
+      }
+
+      // Nạp danh sách kỹ năng và ma pháp vào bảng chọn
+      if (type === 'COMBAT_SET_SKILLS') {
+        skillsList.innerHTML = '';
+        
+        // 1. Thêm nút Đánh thường mặc định
+        const normalAttack = document.createElement('div');
+        normalAttack.className = 'skill-select-item';
+        normalAttack.innerHTML = `<strong>Tấn công vật lý thường</strong><span style="color: #cbd5e1;">Vật công</span>`;
+        normalAttack.onclick = () => selectAction('Ta vung vũ khí lao lên thực hiện một đòn tấn công vật lý thường vào kẻ địch!');
+        skillsList.appendChild(normalAttack);
+
+        // 2. Đổ Kỹ năng phụ (Extra Skill)
+        if (Array.isArray(skills)) {
+          skills.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'skill-select-item';
+            item.innerHTML = `<strong>${s['1'] || s.name}</strong><span style="color: #38bdf8;">${s['2'] || 'Kỹ năng'}</span>`;
+            item.onclick = () => selectAction(`Ta kích hoạt Kỹ năng [${s['1'] || s.name}] để tấn công kẻ địch! Hiệu quả: ${s['5'] || s.effect || 'gây sát thương'}`);
+            skillsList.appendChild(item);
+          });
+        }
+
+        // 3. Đổ Ma pháp (Magic)
+        if (Array.isArray(techniques)) {
+          techniques.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'skill-select-item';
+            item.innerHTML = `<strong>${t['1'] || t.name}</strong><span style="color: #ab47bc;">Ma pháp</span>`;
+            item.onclick = () => selectAction(`Ta niệm chú thi triển Ma pháp [${t['1'] || t.name}]! Tiêu hao ma tố, giáng đòn ma pháp thuộc tính vào mục tiêu!`);
+            skillsList.appendChild(item);
+          });
+        }
       }
 
       // Xử lý luồng Stream phản hồi từ AI
@@ -222,9 +313,7 @@
       if (type === 'COMBAT_AI_DONE') {
         const activeAiMsg = document.getElementById('active-ai-msg');
         if (activeAiMsg) {
-          activeAiMsg.removeAttribute('id'); // Gỡ ID tạm để khóa tin nhắn lại
-          
-          // Định dạng bọc các thẻ <upstore> cho gọn gàng
+          activeAiMsg.removeAttribute('id');
           let html = activeAiMsg.innerHTML;
           const upstoreRegex = /&lt;upstore&gt;([\s\S]*?)&lt;\/upstore&gt;/g;
           if (upstoreRegex.test(html)) {
@@ -237,7 +326,23 @@
       }
     });
 
-    // 2. GỬI TIN NHẮN CHAT CHIẾN ĐẤU LÊN TRẬN PHÁP CHÍNH
+    // Chọn chiêu thức từ bảng
+    function selectAction(actionText) {
+      chatInput.value = actionText;
+      skillsPanel.style.display = 'none';
+      chatInput.focus();
+    }
+
+    // Đóng mở bảng chiêu thức
+    document.getElementById('toggle-skills-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      skillsPanel.style.display = (skillsPanel.style.display === 'flex') ? 'none' : 'flex';
+    });
+    document.getElementById('close-skills-panel-btn').addEventListener('click', () => {
+      skillsPanel.style.display = 'none';
+    });
+
+    // Gửi tin nhắn chat chiến đấu lên trận pháp chính
     function sendCombatMessage() {
       if (isGenerating) return;
       const text = chatInput.value.trim();
@@ -247,14 +352,12 @@
       isGenerating = true;
       sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-      // Vẽ tin nhắn của người chơi ngay lập tức
       const userMsg = document.createElement('div');
       userMsg.style.cssText = 'color: #7dd3fc; background: rgba(14, 165, 233, 0.1); padding: 8px; border-radius: 4px; border-left: 2px solid #38bdf8; margin-bottom: 5px; word-wrap: break-word;';
       userMsg.innerHTML = `<strong>Ngươi:</strong> ${text}`;
       chatLog.appendChild(userMsg);
       chatLog.scrollTop = chatLog.scrollHeight;
 
-      // Gửi tín hiệu gọi API lên game chính
       window.parent.postMessage({ type: 'COMBAT_CHAT_SEND', text: text }, '*');
     }
 
@@ -266,7 +369,7 @@
       }
     });
 
-    // 3. GỬI SỰ KIỆN REROLL / SKIP LÊN GAME CHÍNH
+    // Gửi sự kiện Reroll / Skip lên game chính
     document.getElementById('btn-reroll-var').addEventListener('click', () => {
       window.parent.postMessage({ type: 'COMBAT_REROLL_THINKING' }, '*');
     });
