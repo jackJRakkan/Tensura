@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tensura Combat Terminal</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 10px;
+      background: transparent;
+      color: #e2e8f0;
+      font-family: 'Noto Sans SC', sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: calc(100vh - 20px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    /* Thanh máu HP */
+    .combat-hp-container {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 8px;
+      flex-shrink: 0;
+    }
+    .combat-hp-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8em;
+      color: #fca5a5;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+    .combat-hp-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .combat-hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #be123c, #f43f5e);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    /* Khung Chat Log */
+    #combat-chat-log {
+      flex-grow: 1;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #475569;
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 0.9em;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scrollbar-width: thin;
+      user-select: text;
+    }
+    /* Khung nhập liệu */
+    .combat-input-area {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    #combat-chat-input {
+      flex-grow: 1;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #475569;
+      color: #e2e8f0;
+      border-radius: 4px;
+      padding: 8px;
+      resize: none;
+      height: 40px;
+      font-family: inherit;
+      font-size: 0.9em;
+      line-height: 1.3;
+      box-sizing: border-box;
+    }
+    #combat-chat-input:focus {
+      outline: none;
+      border-color: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    }
+    #combat-send-btn {
+      background: #dc2626;
+      color: white;
+      border: 1px solid #ef4444;
+      border-radius: 4px;
+      width: 45px;
+      height: 40px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    #combat-send-btn:hover {
+      background: #b91c1c;
+    }
+    /* Bộ nút Reroll */
+    .combat-grid-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .combat-btn {
+      background: linear-gradient(145deg, rgba(50, 50, 50, 0.8), rgba(30, 30, 30, 0.9));
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.8em;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .combat-btn:hover {
+      transform: translateY(-1px);
+      color: #fff;
+    }
+    .btn-reroll-var:hover { border-color: #ffb700; box-shadow: 0 0 8px rgba(255, 183, 0, 0.3); }
+    .btn-reroll-text:hover { border-color: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
+    .btn-skip:hover { border-color: #ef4444; color: #f87171; box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+    
+    /* Hộp lệnh ẩn details */
+    details {
+      margin-top: 5px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+    }
+    summary {
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.8em;
+      user-select: none;
+    }
+    pre {
+      font-size: 0.8em;
+      color: #64748b;
+      margin: 5px 0 0 0;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Thanh máu HP -->
+  <div class="combat-hp-container">
+    <div class="combat-hp-label">
+      <span>Sinh lực (HP)</span>
+      <span id="hp-text">--/--</span>
+    </div>
+    <div class="combat-hp-bar">
+      <div id="hp-fill" class="combat-hp-fill"></div>
+    </div>
+  </div>
+
+  <!-- Khung hiển thị nhật ký chiến đấu -->
+  <div id="combat-chat-log">
+    <div style="text-align: center; color: #fca5a5; font-style: italic;">Hệ thống chiến đấu đã sẵn sàng. Hãy nhập hành động giao tranh!</div>
+  </div>
+
+  <!-- Khung nhập lệnh -->
+  <div class="combat-input-area">
+    <textarea id="combat-chat-input" placeholder="Nhập đòn đánh, ma pháp hoặc kỹ năng độc hữu..."></textarea>
+    <button id="combat-send-btn" title="Gửi lệnh"><i class="fas fa-paper-plane"></i></button>
+  </div>
+
+  <!-- Bộ ba nút Reroll/Skip -->
+  <div class="combat-grid-buttons">
+    <button class="combat-btn btn-reroll-var" id="btn-reroll-var"><i class="fas fa-dice"></i> Reroll Biến</button>
+    <button class="combat-btn btn-reroll-text" id="btn-reroll-text"><i class="fas fa-pencil-alt"></i> Reroll Lượt</button>
+    <button class="combat-btn btn-skip" id="btn-skip" style="grid-column: 1 / -1;"><i class="fas fa-running"></i> Bỏ Qua Chiến Đấu</button>
+  </div>
+
+  <script>
+    const chatLog = document.getElementById('combat-chat-log');
+    const chatInput = document.getElementById('combat-chat-input');
+    const sendBtn = document.getElementById('combat-send-btn');
+    let isGenerating = false;
+
+    // 1. NHẬN THÔNG TIN TỪ GAME CHÍNH (HP & CẬP NHẬT LOG)
+    window.addEventListener('message', (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      const { type, hp, maxHp, logText } = e.data;
+
+      // Cập nhật máu HP
+      if (type === 'COMBAT_UPDATE_HP') {
+        const percent = Math.min(100, Math.max(0, Math.floor((hp / maxHp) * 100)));
+        document.getElementById('hp-text').textContent = `${hp}/${maxHp}`;
+        document.getElementById('hp-fill').style.width = `${percent}%`;
+      }
+
+      // Xử lý luồng Stream phản hồi từ AI
+      if (type === 'COMBAT_AI_STREAM') {
+        let activeAiMsg = document.getElementById('active-ai-msg');
+        if (!activeAiMsg) {
+          activeAiMsg = document.createElement('div');
+          activeAiMsg.id = 'active-ai-msg';
+          activeAiMsg.style.cssText = 'color: #e2e8f0; background: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; border-left: 2px solid #ef4444; margin-bottom: 5px; white-space: pre-wrap;';
+          chatLog.appendChild(activeAiMsg);
+        }
+        activeAiMsg.textContent = logText;
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      // Khi AI hoàn thành phản hồi
+      if (type === 'COMBAT_AI_DONE') {
+        const activeAiMsg = document.getElementById('active-ai-msg');
+        if (activeAiMsg) {
+          activeAiMsg.removeAttribute('id'); // Gỡ ID tạm để khóa tin nhắn lại
+          
+          // Định dạng bọc các thẻ <upstore> cho gọn gàng
+          let html = activeAiMsg.innerHTML;
+          const upstoreRegex = /&lt;upstore&gt;([\s\S]*?)&lt;\/upstore&gt;/g;
+          if (upstoreRegex.test(html)) {
+            html = html.replace(upstoreRegex, '<details><summary>⚙️ Xem lệnh hệ thống tính toán (Upstore)</summary><pre>$1</pre></details>');
+            activeAiMsg.innerHTML = html;
+          }
+        }
+        isGenerating = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+      }
+    });
+
+    // 2. GỬI TIN NHẮN CHAT CHIẾN ĐẤU LÊN TRẬN PHÁP CHÍNH
+    function sendCombatMessage() {
+      if (isGenerating) return;
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      chatInput.value = '';
+      isGenerating = true;
+      sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+      // Vẽ tin nhắn của người chơi ngay lập tức
+      const userMsg = document.createElement('div');
+      userMsg.style.cssText = 'color: #7dd3fc; background: rgba(14, 165, 233, 0.1); padding: 8px; border-radius: 4px; border-left: 2px solid #38bdf8; margin-bottom: 5px; word-wrap: break-word;';
+      userMsg.innerHTML = `<strong>Ngươi:</strong> ${text}`;
+      chatLog.appendChild(userMsg);
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      // Gửi tín hiệu gọi API lên game chính
+      window.parent.postMessage({ type: 'COMBAT_CHAT_SEND', text: text }, '*');
+    }
+
+    sendBtn.addEventListener('click', sendCombatMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendCombatMessage();
+      }
+    });
+
+    // 3. GỬI SỰ KIỆN REROLL / SKIP LÊN GAME CHÍNH
+    document.getElementById('btn-reroll-var').addEventListener('click', () => {
+      window.parent.postMessage({ type: 'COMBAT_REROLL_THINKING' }, '*');
+    });
+    document.getElementById('btn-reroll-text').addEventListener('click', () => {
+      window.parent.postMessage({ type: 'COMBAT_REROLL_TEXT' }, '*');
+    });
+    document.getElementById('btn-skip').addEventListener('click', () => {
+      window.parent.postMessage({ type: 'COMBAT_SKIP' }, '*');
+    });
+  </script>
+</body>
+</html>
