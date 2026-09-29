@@ -3,122 +3,290 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tensura Combat Terminal</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
+  <title>Tensura Combat Terminal OS</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <style>
+    :root {
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.35);
+      --hp-color: #f43f5e;
+      --ep-color: #0284c7;
+      --bg-dark: #020617;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --border-color: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: #334155 transparent;
+    }
+
+    *::-webkit-scrollbar {
+      width: 4px;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
     body {
       margin: 0;
-      padding: 10px;
-      background: transparent;
-      color: #e2e8f0;
-      font-family: 'Noto Sans SC', sans-serif;
+      padding: 12px;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      height: calc(100vh - 20px);
-      box-sizing: border-box;
+      height: 100vh;
       overflow: hidden;
+      user-select: none;
     }
-    /* Thanh máu HP */
-    .combat-hp-container {
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: 6px;
-      padding: 8px;
-      flex-shrink: 0;
-    }
-    .combat-hp-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8em;
-      color: #fca5a5;
-      margin-bottom: 4px;
-      font-weight: bold;
-    }
-    .combat-hp-bar {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .combat-hp-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #be123c, #f43f5e);
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-    /* Khung Chat Log */
-    #combat-chat-log {
-      flex-grow: 1;
-      overflow-y: auto;
-      background: rgba(0, 0, 0, 0.65);
-      border: 1px solid #475569;
-      border-radius: 4px;
-      padding: 10px;
-      font-size: 0.9em;
+
+    /* 1. KHUNG CHỈ SỐ NHÂN VẬT (HP & MA TỐ EP) */
+    .status-dashboard {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      scrollbar-width: thin;
-      user-select: text;
-    }
-    /* Khung nhập liệu */
-    .combat-input-area {
-      display: flex;
-      gap: 6px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
       flex-shrink: 0;
     }
-    #combat-chat-input {
-      flex-grow: 1;
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid #475569;
-      color: #e2e8f0;
-      border-radius: 4px;
-      padding: 8px;
-      resize: none;
-      height: 40px;
-      font-family: inherit;
-      font-size: 0.9em;
-      line-height: 1.3;
-      box-sizing: border-box;
+
+    .bar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .hp-label { color: #fda4af; }
+    .ep-label { color: #7dd3fc; }
+
+    .progress-track {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #be123c, #f43f5e);
+      width: 100%;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+    }
+
+    .ep-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0369a1, #38bdf8);
+      width: 100%;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    }
+
+    /* 2. NHẬT KÝ CHIẾN ĐẤU (CHAT LOG) */
+    #combat-chat-log {
+      flex: 1;
+      overflow-y: auto;
+      background: rgba(2, 6, 23, 0.75);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      user-select: text;
+    }
+
+    .log-msg {
+      padding: 8px 12px;
+      border-radius: 6px;
+      line-height: 1.45;
+      animation: fadeIn 0.25s ease-out;
+      word-break: break-word;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-user {
+      background: rgba(14, 165, 233, 0.12);
+      border-left: 3px solid var(--primary);
+      color: #e0f2fe;
+    }
+
+    .msg-ai {
+      background: rgba(30, 41, 59, 0.5);
+      border-left: 3px solid #f43f5e;
+      color: #f1f5f9;
+    }
+
+    .msg-system {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 4px;
+    }
+
+    /* 3. BẢNG CHIÊU THỨC / KỸ NĂNG POPUP */
+    #skills-panel {
+      position: absolute;
+      bottom: 95px;
+      left: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 250px;
+      z-index: 100;
+      box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+    }
+
+    .skills-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      padding-bottom: 6px;
+    }
+
+    .skills-category-title {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 4px 0 2px 2px;
+    }
+
+    .skill-select-item {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.15s ease;
+    }
+
+    .skill-select-item:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--primary);
+      transform: translateX(2px);
+    }
+
+    /* 4. THANH NHẬP LỆNH GIAO TRANH */
+    .combat-input-area {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    #combat-chat-input {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #334155;
+      color: var(--text-main);
+      border-radius: 6px;
+      padding: 8px 12px;
+      resize: none;
+      height: 42px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
     #combat-chat-input:focus {
       outline: none;
-      border-color: #ef4444;
-      box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
     }
-    #combat-send-btn {
-      background: #dc2626;
-      color: white;
-      border: 1px solid #ef4444;
-      border-radius: 4px;
-      width: 45px;
-      height: 40px;
+
+    .action-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      flex-shrink: 0;
     }
+
+    #toggle-skills-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+    }
+
+    #toggle-skills-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    #combat-send-btn {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border: none;
+      color: #020617;
+      font-weight: bold;
+    }
+
     #combat-send-btn:hover {
-      background: #b91c1c;
+      box-shadow: 0 0 12px var(--primary-glow);
+      filter: brightness(1.1);
     }
-    /* Bộ nút Reroll */
-    .combat-grid-buttons {
+
+    /* 5. THANH ĐIỀU KHIỂN CHIẾN LƯỢC DƯỚI CÙNG */
+    .combat-bottom-bar {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1.2fr;
       gap: 8px;
       flex-shrink: 0;
     }
-    .combat-btn {
-      background: linear-gradient(145deg, rgba(50, 50, 50, 0.8), rgba(30, 30, 30, 0.9));
-      border: 1px solid #475569;
+
+    .sub-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
       color: #cbd5e1;
-      padding: 8px;
+      padding: 7px;
       border-radius: 6px;
-      font-size: 0.8em;
-      font-weight: bold;
+      font-size: 0.75rem;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -126,120 +294,104 @@
       gap: 6px;
       transition: all 0.2s;
     }
-    .combat-btn:hover {
-      transform: translateY(-1px);
+
+    .sub-btn:hover {
+      background: rgba(51, 65, 85, 0.8);
       color: #fff;
     }
-    .btn-reroll-var:hover { border-color: #ffb700; box-shadow: 0 0 8px rgba(255, 183, 0, 0.3); }
-    .btn-reroll-text:hover { border-color: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
-    .btn-skip:hover { border-color: #ef4444; color: #f87171; box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
-    
-    /* BẢNG CHỌN CHIÊU THỨC / KỸ NĂNG */
-    #skills-panel {
-      position: absolute;
-      bottom: 105px;
-      left: 10px;
-      right: 10px;
-      background: rgba(15, 23, 42, 0.98);
-      border: 1.5px solid #ef4444;
-      border-radius: 6px;
-      padding: 10px;
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 100;
-      box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
-    }
-    .skills-panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.85em;
-      font-weight: bold;
-      color: #fca5a5;
-      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
-      padding-bottom: 4px;
-    }
-    .skill-select-item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid #475569;
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-size: 0.85em;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      transition: background 0.2s;
-    }
-    .skill-select-item:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: #ef4444;
-    }
-    
+
+    .btn-reroll-var:hover { border-color: #f59e0b; color: #fbbf24; }
+    .btn-reroll-text:hover { border-color: #38bdf8; color: #7dd3fc; }
+    .btn-skip:hover { border-color: #ef4444; color: #f87171; }
+
+    /* Hộp giải trình Đại Hiền Giả */
     details {
-      margin-top: 5px;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 5px;
-      border-radius: 4px;
-      border: 1px solid #334155;
+      margin-top: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px dashed #334155;
+      border-radius: 5px;
+      padding: 6px 8px;
     }
     summary {
-      color: #94a3b8;
+      color: #38bdf8;
       cursor: pointer;
-      font-size: 0.8em;
-      user-select: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      outline: none;
     }
     pre {
-      font-size: 0.8em;
-      color: #64748b;
-      margin: 5px 0 0 0;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin: 6px 0 0 0;
       white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
 
-  <!-- Thanh máu HP -->
-  <div class="combat-hp-container">
-    <div class="combat-hp-label">
-      <span>Sinh lực phu quân (HP)</span>
-      <span id="hp-text">--/--</span>
+  <!-- 1. BẢNG ĐIỀU KHIỂN CHỈ SỐ (HP & EP MA TỐ) -->
+  <div class="status-dashboard">
+    <div class="bar-group">
+      <div class="bar-label hp-label">
+        <span><i class="fas fa-heart"></i> SINH LỰC PHU QUÂN (HP)</span>
+        <span id="hp-text">-- / --</span>
+      </div>
+      <div class="progress-track">
+        <div id="hp-fill" class="hp-fill"></div>
+      </div>
     </div>
-    <div class="combat-hp-bar">
-      <div id="hp-fill" class="combat-hp-fill"></div>
+    <div class="bar-group">
+      <div class="bar-label ep-label">
+        <span><i class="fas fa-bolt"></i> NĂNG LƯỢNG MA TỐ (EP)</span>
+        <span id="ep-text">-- / --</span>
+      </div>
+      <div class="progress-track">
+        <div id="ep-fill" class="ep-fill"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Khung hiển thị nhật ký chiến đấu -->
+  <!-- 2. KHUNG HIỂN THỊ DIỄN BIẾN GIAO TRANH -->
   <div id="combat-chat-log">
-    <div style="text-align: center; color: #fca5a5; font-style: italic;">Hệ thống chiến đấu đã sẵn sàng. Hãy nhập hành động giao tranh!</div>
+    <div class="log-msg msg-system">
+      <i class="fas fa-shield-alt"></i> Trận pháp chiến đấu Tensura OS đã kích hoạt. Đại Hiền Giả đang giám sát trận địa!
+    </div>
   </div>
 
-  <!-- BẢNG CHỌN CHIÊU THỨC / KỸ NĂNG (ẨN HIỆN ĐƯỢC) -->
+  <!-- 3. BẢNG CHỌN CHIÊU THỨC / ĐỘC HỮU KỸ / MA PHÁP -->
   <div id="skills-panel">
-    <div class="skills-panel-header">
-      <span>⚔️ CHỌN CHIÊU THỨC TẤN CÔNG</span>
-      <span id="close-skills-panel-btn" style="cursor: pointer; padding: 0 5px;"><i class="fas fa-times"></i></span>
+    <div class="skills-header">
+      <span><i class="fas fa-crosshairs"></i> CHỌN CHIÊU THỨC / MA PHÁP</span>
+      <span id="close-skills-panel-btn" style="cursor: pointer; padding: 2px 6px;"><i class="fas fa-times"></i></span>
     </div>
-    <div id="skills-list" style="display: flex; flex-direction: column; gap: 5px;">
-      <!-- Đánh thường và kỹ năng sẽ tự động đổ vào đây -->
+    <div id="skills-list" style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 4px;">
+      <!-- Danh sách chiêu thức sẽ tự động render vào đây -->
     </div>
   </div>
 
-  <!-- Khung nhập lệnh -->
+  <!-- 4. KHUNG NHẬP HÀNH ĐỘNG -->
   <div class="combat-input-area">
-    <button id="toggle-skills-btn" class="combat-btn" style="width: 45px; height: 40px; margin: 0; border-color: #ef4444; color: #ef4444;" title="Chọn Kỹ năng / Đánh thường"><i class="fas fa-fist-raised"></i></button>
-    <textarea id="combat-chat-input" placeholder="Nhập hành động hoặc chọn chiêu thức..."></textarea>
-    <button id="combat-send-btn" title="Gửi lệnh"><i class="fas fa-paper-plane"></i></button>
+    <button id="toggle-skills-btn" class="action-btn" title="Khai mở kho chiêu thức">
+      <i class="fas fa-book-spells"></i>
+    </button>
+    <textarea id="combat-chat-input" placeholder="Nhập chỉ lệnh tấn công hoặc chọn chiêu thức..."></textarea>
+    <button id="combat-send-btn" class="action-btn" title="Ra lệnh">
+      <i class="fas fa-paper-plane"></i>
+    </button>
   </div>
 
-  <!-- Bộ ba nút Reroll/Skip -->
-  <div class="combat-grid-buttons">
-    <button class="combat-btn btn-reroll-var" id="btn-reroll-var"><i class="fas fa-dice"></i> Reroll Biến</button>
-    <button class="combat-btn btn-reroll-text" id="btn-reroll-text"><i class="fas fa-pencil-alt"></i> Reroll Lượt</button>
-    <button class="combat-btn btn-skip" id="btn-skip" style="grid-column: 1 / -1;"><i class="fas fa-running"></i> Bỏ Qua Chiến Đấu</button>
+  <!-- 5. BỘ BA NÚT ĐIỀU PHỐI CHIẾN CỤC -->
+  <div class="combat-bottom-bar">
+    <button class="sub-btn btn-reroll-var" id="btn-reroll-var" title="Tính toán lại biến số chiến đấu">
+      <i class="fas fa-dice-d20"></i> Reroll Biến
+    </button>
+    <button class="sub-btn btn-reroll-text" id="btn-reroll-text" title="Viết lại diễn biến lượt này">
+      <i class="fas fa-feather-alt"></i> Reroll Lượt
+    </button>
+    <button class="sub-btn btn-skip" id="btn-skip" title="Thoát khỏi trạng thái giao tranh">
+      <i class="fas fa-person-running"></i> Rút Lui / Bỏ Qua
+    </button>
   </div>
 
   <script>
@@ -250,90 +402,129 @@
     const skillsList = document.getElementById('skills-list');
     let isGenerating = false;
 
-    // 1. NHẬN THÔNG TIN TỪ GAME CHÍNH (HP, KỸ NĂNG & CẬP NHẬT LOG)
+    // 1. NHẬN THÔNG TIN TỪ TRẬN PHÁP CHÍNH (HP, EP, KỸ NĂNG, STREAM LOG)
     window.addEventListener('message', (e) => {
       if (!e.data || typeof e.data !== 'object') return;
-      const { type, hp, maxHp, logText, skills, techniques } = e.data;
+      const { type, hp, maxHp, ep, maxEp, logText, skills, techniques, uniqueSkills } = e.data;
 
-      // Cập nhật máu HP
-      if (type === 'COMBAT_UPDATE_HP') {
-        const percent = Math.min(100, Math.max(0, Math.floor((hp / maxHp) * 100)));
-        document.getElementById('hp-text').textContent = `${hp}/${maxHp}`;
+      // Cập nhật Sinh lực HP
+      if (type === 'COMBAT_UPDATE_HP' && typeof hp !== 'undefined') {
+        const percent = Math.min(100, Math.max(0, Math.floor((hp / (maxHp || 100)) * 100)));
+        document.getElementById('hp-text').textContent = `${hp} / ${maxHp || 100}`;
         document.getElementById('hp-fill').style.width = `${percent}%`;
       }
 
-      // Nạp danh sách kỹ năng và ma pháp vào bảng chọn
-      if (type === 'COMBAT_SET_SKILLS') {
-        skillsList.innerHTML = '';
-        
-        // 1. Thêm nút Đánh thường mặc định
-        const normalAttack = document.createElement('div');
-        normalAttack.className = 'skill-select-item';
-        normalAttack.innerHTML = `<strong>Tấn công vật lý thường</strong><span style="color: #cbd5e1;">Vật công</span>`;
-        normalAttack.onclick = () => selectAction('Ta vung vũ khí lao lên thực hiện một đòn tấn công vật lý thường vào kẻ địch!');
-        skillsList.appendChild(normalAttack);
-
-        // 2. Đổ Kỹ năng phụ (Extra Skill)
-        if (Array.isArray(skills)) {
-          skills.forEach(s => {
-            const item = document.createElement('div');
-            item.className = 'skill-select-item';
-            item.innerHTML = `<strong>${s['1'] || s.name}</strong><span style="color: #38bdf8;">${s['2'] || 'Kỹ năng'}</span>`;
-            item.onclick = () => selectAction(`Ta kích hoạt Kỹ năng [${s['1'] || s.name}] để tấn công kẻ địch! Hiệu quả: ${s['5'] || s.effect || 'gây sát thương'}`);
-            skillsList.appendChild(item);
-          });
-        }
-
-        // 3. Đổ Ma pháp (Magic)
-        if (Array.isArray(techniques)) {
-          techniques.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'skill-select-item';
-            item.innerHTML = `<strong>${t['1'] || t.name}</strong><span style="color: #ab47bc;">Ma pháp</span>`;
-            item.onclick = () => selectAction(`Ta niệm chú thi triển Ma pháp [${t['1'] || t.name}]! Tiêu hao ma tố, giáng đòn ma pháp thuộc tính vào mục tiêu!`);
-            skillsList.appendChild(item);
-          });
-        }
+      // Cập nhật Ma Tố EP (nếu có truyền sang)
+      if (typeof ep !== 'undefined') {
+        const epPercent = Math.min(100, Math.max(0, Math.floor((ep / (maxEp || 100)) * 100)));
+        document.getElementById('ep-text').textContent = `${ep} / ${maxEp || 100}`;
+        document.getElementById('ep-fill').style.width = `${epPercent}%`;
       }
 
-      // Xử lý luồng Stream phản hồi từ AI
+      // Nạp danh sách kỹ năng, Ma Pháp và Độc Hữu Kỹ vào bảng chọn
+      if (type === 'COMBAT_SET_SKILLS') {
+        renderSkillsMenu(skills, techniques, uniqueSkills);
+      }
+
+      // Nhận luồng Stream phản hồi từ AI
       if (type === 'COMBAT_AI_STREAM') {
         let activeAiMsg = document.getElementById('active-ai-msg');
         if (!activeAiMsg) {
           activeAiMsg = document.createElement('div');
           activeAiMsg.id = 'active-ai-msg';
-          activeAiMsg.style.cssText = 'color: #e2e8f0; background: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; border-left: 2px solid #ef4444; margin-bottom: 5px; white-space: pre-wrap;';
+          activeAiMsg.className = 'log-msg msg-ai';
           chatLog.appendChild(activeAiMsg);
         }
         activeAiMsg.textContent = logText;
         chatLog.scrollTop = chatLog.scrollHeight;
       }
 
-      // Khi AI hoàn thành phản hồi
+      // Khi AI hoàn tất lượt tài phán
       if (type === 'COMBAT_AI_DONE') {
         const activeAiMsg = document.getElementById('active-ai-msg');
         if (activeAiMsg) {
           activeAiMsg.removeAttribute('id');
-          let html = activeAiMsg.innerHTML;
-          const upstoreRegex = /&lt;upstore&gt;([\s\S]*?)&lt;\/upstore&gt;/g;
-          if (upstoreRegex.test(html)) {
-            html = html.replace(upstoreRegex, '<details><summary>⚙️ Xem lệnh hệ thống tính toán (Upstore)</summary><pre>$1</pre></details>');
-            activeAiMsg.innerHTML = html;
-          }
+          formatAiCombatMessage(activeAiMsg);
         }
         isGenerating = false;
         sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
       }
     });
 
-    // Chọn chiêu thức từ bảng
-    function selectAction(actionText) {
-      chatInput.value = actionText;
-      skillsPanel.style.display = 'none';
-      chatInput.focus();
+    // 2. RENDER DANH SÁCH CHIÊU THỨC TENSURA
+    function renderSkillsMenu(skills = [], techniques = [], uniqueSkills = []) {
+      skillsList.innerHTML = '';
+
+      // Tầng 1: Thể thuật & Tấn công thường
+      appendCategoryHeader('THỂ THUẬT CƠ SỞ');
+      createSkillItem('Tấn công vật lý thường', 'Cận chiến', '#94a3b8', 'Ta vung vũ khí lao lên thực hiện một đòn công kích vật lý trực diện vào đối thủ!');
+      createSkillItem('Tư thế thủ vững / Né tránh', 'Ứng phó', '#38bdf8', 'Ta vào thế phòng ngự cẩn trọng, tập trung quan sát chuẩn bị né tránh hoặc đỡ đòn!');
+
+      // Tầng 2: Độc Hữu Kỹ (Unique Skills) nếu có
+      if (Array.isArray(uniqueSkills) && uniqueSkills.length > 0) {
+        appendCategoryHeader('ĐỘC HỮU KỸ (UNIQUE SKILL)');
+        uniqueSkills.forEach(u => {
+          const name = u['1'] || u.name || 'Độc Hữu Kỹ';
+          createSkillItem(`👑 ${name}`, 'Độc Hữu Kỹ', '#f59e0b', `Ta giải phóng uy năng của Độc Hữu Kỹ [${name}]! ${u['4'] || u.effect || ''}`);
+        });
+      }
+
+      // Tầng 3: Kỹ năng phụ (Extra Skills)
+      if (Array.isArray(skills) && skills.length > 0) {
+        appendCategoryHeader('KỸ NĂNG PHỤ (EXTRA SKILL)');
+        skills.forEach(s => {
+          const name = s['1'] || s.name || 'Kỹ Năng';
+          createSkillItem(`⚡ ${name}`, s['2'] || 'Kỹ năng', '#38bdf8', `Ta kích hoạt Kỹ năng [${name}] giáng xuống mục tiêu! Hiệu quả: ${s['5'] || s.effect || 'Sát thương ma vật'}`);
+        });
+      }
+
+      // Tầng 4: Ma pháp (Magic)
+      if (Array.isArray(techniques) && techniques.length > 0) {
+        appendCategoryHeader('MA PHÁP (MAGIC)');
+        techniques.forEach(t => {
+          const name = t['1'] || t.name || 'Ma Pháp';
+          createSkillItem(`🔮 ${name}`, 'Ma Pháp', '#c084fc', `Ta vận chuyển ma tố niệm chú thi triển Ma Pháp [${name}]! Công kích ma đạo bao trùm chiến trường!`);
+        });
+      }
     }
 
-    // Đóng mở bảng chiêu thức
+    function appendCategoryHeader(title) {
+      const h = document.createElement('div');
+      h.className = 'skills-category-title';
+      h.textContent = title;
+      skillsList.appendChild(h);
+    }
+
+    function createSkillItem(name, badge, badgeColor, actionText) {
+      const item = document.createElement('div');
+      item.className = 'skill-select-item';
+      item.innerHTML = `<strong>${name}</strong><span style="color: ${badgeColor}; font-size: 0.7rem; font-weight: bold;">${badge}</span>`;
+      item.onclick = () => {
+        chatInput.value = actionText;
+        skillsPanel.style.display = 'none';
+        chatInput.focus();
+      };
+      skillsList.appendChild(item);
+    }
+
+    // 3. ĐỊNH DẠNG TIN NHẮN AI & BÓC TÁCH KHỐI ĐẠI HIỀN GIẢ
+    function formatAiCombatMessage(msgEl) {
+      let rawText = msgEl.innerHTML;
+      
+      // Bóc tách khối lệnh <upstore>
+      const upstoreRegex = /&lt;upstore&gt;([\s\S]*?)&lt;\/upstore&gt;/gi;
+      if (upstoreRegex.test(rawText)) {
+        rawText = rawText.replace(upstoreRegex, `
+          <details>
+            <summary><i class="fas fa-brain"></i> Báo cáo phân tích Đại Hiền Giả (Upstore)</summary>
+            <pre>$1</pre>
+          </details>
+        `);
+      }
+      msgEl.innerHTML = rawText;
+    }
+
+    // 4. BẬT / TẮT BẢNG CHIÊU THỨC
     document.getElementById('toggle-skills-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       skillsPanel.style.display = (skillsPanel.style.display === 'flex') ? 'none' : 'flex';
@@ -342,8 +533,8 @@
       skillsPanel.style.display = 'none';
     });
 
-    // Gửi tin nhắn chat chiến đấu lên trận pháp chính
-    function sendCombatMessage() {
+    // 5. GỬI LỆNH CHIẾN ĐẤU LÊN TRẬN PHÁP CHÍNH
+    function sendCombatAction() {
       if (isGenerating) return;
       const text = chatInput.value.trim();
       if (!text) return;
@@ -352,24 +543,26 @@
       isGenerating = true;
       sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
+      // Hiển thị tin nhắn của người chơi
       const userMsg = document.createElement('div');
-      userMsg.style.cssText = 'color: #7dd3fc; background: rgba(14, 165, 233, 0.1); padding: 8px; border-radius: 4px; border-left: 2px solid #38bdf8; margin-bottom: 5px; word-wrap: break-word;';
-      userMsg.innerHTML = `<strong>Ngươi:</strong> ${text}`;
+      userMsg.className = 'log-msg msg-user';
+      userMsg.innerHTML = `<strong>Phu quân:</strong> ${text}`;
       chatLog.appendChild(userMsg);
       chatLog.scrollTop = chatLog.scrollHeight;
 
+      // Bắn tin nhắn qua postMessage lên trang cha
       window.parent.postMessage({ type: 'COMBAT_CHAT_SEND', text: text }, '*');
     }
 
-    sendBtn.addEventListener('click', sendCombatMessage);
+    sendBtn.addEventListener('click', sendCombatAction);
     chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendCombatMessage();
+        sendCombatAction();
       }
     });
 
-    // Gửi sự kiện Reroll / Skip lên game chính
+    // 6. CÁC NÚT ĐIỀU PHỐI CHIẾN LƯỢC
     document.getElementById('btn-reroll-var').addEventListener('click', () => {
       window.parent.postMessage({ type: 'COMBAT_REROLL_THINKING' }, '*');
     });
